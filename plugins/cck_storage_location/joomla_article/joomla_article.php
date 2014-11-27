@@ -215,41 +215,7 @@ class plgCCK_Storage_LocationJoomla_Article extends JCckPluginLocation
 	}
 	
 	// -------- -------- -------- -------- -------- -------- -------- -------- // Store
-	
-	// onCCK_Storage_LocationDelete
-	public static function onCCK_Storage_LocationDelete( $pk, &$config = array() )
-	{
-		$app		=	JFactory::getApplication();
-		$dispatcher	=	JDispatcher::getInstance();
-		$table		=	self::_getTable( $pk );	
-		
-		if ( !$table ) {
-			return false;
-		}
-		
-		// Check
-		$user 			=	JCck::getUser();
-		$canDelete		=	$user->authorise( 'core.delete', 'com_cck.form.'.$config['type_id'] );
-		$canDeleteOwn	=	$user->authorise( 'core.delete.own', 'com_cck.form.'.$config['type_id'] );
-		if ( ( !$canDelete && !$canDeleteOwn ) ||
-			 ( !$canDelete && $canDeleteOwn && $config['author'] != $user->get( 'id' ) ) ||
-			 ( $canDelete && !$canDeleteOwn && $config['author'] == $user->get( 'id' ) ) ) {
-			$app->enqueueMessage( JText::_( 'COM_CCK_ERROR_DELETE_NOT_PERMITTED' ), 'error' );
-			return;
-		}
-		
-		// Process
-		$result	=	$dispatcher->trigger( 'onContentBeforeDelete', array( self::$context, $table ) );
-		if ( in_array( false, $result, true ) ) {
-			return false;
-		}
-		if ( !$table->delete( $pk ) ) {
-			return false;
-		}
-		$dispatcher->trigger( 'onContentAfterDelete', array( self::$context, $table ) );
-		
-		return true;
-	}
+
 	
 	// onCCK_Storage_LocationStore
 	public function onCCK_Storage_LocationStore( $type, $data, &$config = array(), $pk = 0 )

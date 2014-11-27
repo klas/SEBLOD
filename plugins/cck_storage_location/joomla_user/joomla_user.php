@@ -231,12 +231,54 @@ class plgCCK_Storage_LocationJoomla_User extends JCckPluginLocation
 	}
 	
 	// -------- -------- -------- -------- -------- -------- -------- -------- // Store
-	
+
+
 	// onCCK_Storage_LocationDelete
 	public static function onCCK_Storage_LocationDelete( $pk, &$config = array() )
 	{
-		// todo		
-		return false;
+		$app		=	JFactory::getApplication();
+		$dispatcher	=	JDispatcher::getInstance();
+		$table		=	self::_getTable( $pk );
+
+		if ( !$table ) {
+			return false;
+		}
+
+		// Check
+		$user 			=	JCck::getUser();
+
+		// You cannot delete yourself!
+		if ( $user->id == $pk ) {
+			$app	=	JFactory::getApplication();
+			$app->enqueueMessage( JText::_( 'COM_CCK_ERROR_CANNOT_DELETE_SELF' ), 'error' );
+			self::$error	=	true;
+		}
+
+		$isSuperAdmin = $user->authorise('core.admin');
+		$canDelete		=	$user->authorise( 'core.delete', 'com_cck.form.'.$config['type_id'] );
+		// Don't allow non-super-admin to delete a super admin
+		$canDelete = (!$isSuperAdmin && JAccess::check($pk, 'core.admin')) ? false : $canDelete;
+
+		if ( ( !$canDelete ) ||
+			( !$canDelete && $config['author'] != $user->get( 'id' ) ) ||
+			( $canDelete  && $config['author'] == $user->get( 'id' ) ) ) {
+			$app->enqueueMessage( JText::_( 'COM_CCK_ERROR_DELETE_NOT_PERMITTED' ), 'error' );
+			return;
+		}
+
+		// Process
+		$dispatcher->trigger( 'onUserBeforeDelete', array( self::$context, $table ) );
+		$result	=	$dispatcher->trigger( 'onContentBeforeDelete', array( self::$context, $table ) );
+		if ( in_array( false, $result, true ) ) {
+			return false;
+		}
+		if ( !$table->delete( $pk ) ) {
+			return false;
+		}
+		$dispatcher->trigger( 'onContentAfterDelete', array( self::$context, $table ) );
+		$dispatcher->trigger( 'onUserAfterDelete', array( self::$context, $table ) );
+
+		return true;
 	}
 	
 	// onCCK_Storage_LocationStore
